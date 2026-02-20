@@ -43,30 +43,34 @@ public class NotificationService {
         try {
             List<User> members = groupMemberRepository.findUsersByGroupId(UUID.fromString(groupId));
             for(User member : members){
-                Notification notification = new Notification();
-                notification.setUser(member);
-                notification.setNotificationType(notificationType);
-                notification.setMessage(message);
-                notification.setRead(false);
-                notificationRepository.save(notification);
-
-                java.util.Map<String, Object> payload = new java.util.HashMap<>();
-                payload.put("id", notification.getId());
-                payload.put("notificationType", notification.getNotificationType());
-                payload.put("message", notification.getMessage());
-                payload.put("createdAt", notification.getCreatedAt());
-                payload.put("isRead", notification.isRead());
-
-                messagingTemplate.convertAndSendToUser(
-                        member.getId().toString(),
-                        "/notification",
-                        payload
-                    );
+                pushNotificationToUser(member, message, notificationType);
             }
         } catch (Exception e) {
             System.out.println("Send group notification failed");
             // Log error but allow message to be saved
         }
+    }
+
+    public void pushNotificationToUser(User user, String message, NotificationType notificationType){
+        Notification notification = new Notification();
+        notification.setUser(user);
+        notification.setNotificationType(notificationType);
+        notification.setMessage(message);
+        notification.setRead(false);
+        notificationRepository.save(notification);
+
+        java.util.Map<String, Object> payload = new java.util.HashMap<>();
+        payload.put("id", notification.getId());
+        payload.put("notificationType", notification.getNotificationType());
+        payload.put("message", notification.getMessage());
+        payload.put("createdAt", notification.getCreatedAt());
+        payload.put("isRead", notification.isRead());
+
+        messagingTemplate.convertAndSendToUser(
+                user.getId().toString(),
+                "/notification",
+                payload
+        );
     }
 
     public ListNotificationWithTotalResponse getListNotification (UUID userId, Integer pageNumber, Integer pageSize){
